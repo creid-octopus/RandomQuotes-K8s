@@ -37,7 +37,7 @@ env:
   DOCKERHUB_REPO: 'octopuscory/randomquotes-k8s'
   OCTOPUS_SERVER_URL: 'https://demo.octopus.app'
   OCTOPUS_SPACE: 'LDX3'
-  OCTOPUS_PROJECT: 'RandomQuotes - Kustomize'
+  OCTOPUS_PROJECT: 'Random Quotes - Kustomize'
   OCTOPUS_CHANNEL: 'Multi-tenant Projects'
 
 jobs:
