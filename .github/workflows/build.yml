@@ -33,7 +33,7 @@ on:
           default: ''
 
 env:
-  DOCKERHUB_REPO: 'coryreid/randomquotes-k8s'
+  DOCKERHUB_REPO: 'octopuscory/randomquotes-k8s'
 
 jobs:
     build-and-push-application:
