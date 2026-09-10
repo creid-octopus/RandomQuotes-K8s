@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace is tokenized rather than hardcoded, unlike the dev/test/prod
+# overlays. Octopus's SubstituteInFiles step (Octopus.Action.SubstituteInFiles.TargetFiles:
+# k8s/**/*.yaml on the "Deploy with Kustomize" step) resolves this before Kustomize
+# ever builds, so this one overlay serves every environment Octopus deploys to.
+namespace: "#{Project.ComputedNamespace}"
+
+resources:
+- ../../base
+
+# Base ships plain, working defaults (BRAND_NAME, BRAND_COLOR, homepageDisplay) so
+# it stays correct for the plain kubectl and dev/test/prod Kustomize paths, which
+# never run Octopus's substitution step. These patches are what make the Octopus
+# path tenant-aware: they replace those same fields with tokens that resolve to a
+# tenant's override, or fall back to the value template's default when a tenant
+# hasn't set one.
+patches:
+- target:
+    kind: ConfigMap
+    name: randomquotes-branding
+  patch: |-
+    - op: replace
+      path: /data/BRAND_NAME
+      value: "#{Tenant.Branding.BrandName}"
+    - op: replace
+      path: /data/BRAND_COLOR
+      value: "#{Tenant.Branding.BrandColor}"
+- target:
+    kind: Secret
+    name: random-quotes-secrets
+  patch: |-
+    - op: replace
+      path: /stringData/homepageDisplay
+      value: "#{Tenant.RandomQuotes.HomepagePhrase}"

@@ -3,3 +3,5 @@ kind: Kustomization
 
 resources:
 - randomquotes-deployment.yaml
+- branding-configmap.yaml
+- randomquotes-secrets.yaml

@@ -6,5 +6,6 @@ resources:
 
 secretGenerator:
   - name: random-quotes-secrets
+    behavior: merge
     literals:
       - homepageDisplay="blah test"

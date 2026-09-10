@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: randomquotes-branding
+data:
+  BRAND_NAME: "RandomQuotes"
+  BRAND_COLOR: "#0d6efd"

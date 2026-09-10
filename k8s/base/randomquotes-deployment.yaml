@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: randomquotes-web
-          image: #{Project.DynamicImageTag}
+          image: "#{Project.Deployment.Image}"
           resources:
             requests:
               memory: "64Mi"
@@ -32,6 +32,9 @@ spec:
                 secretKeyRef:
                   name: random-quotes-secrets
                   key: homepageDisplay
+          envFrom:
+            - configMapRef:
+                name: randomquotes-branding
 ---
 apiVersion: v1
 kind: Service

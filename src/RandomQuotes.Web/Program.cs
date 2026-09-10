@@ -9,6 +9,11 @@ namespace RandomQuotes.Web
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
+            builder.Services.AddSingleton(new Models.BrandingOptions{
+                BrandName = !string.IsNullOrWhiteSpace(builder.Configuration["BRAND_NAME"]) ? builder.Configuration["BRAND_NAME"]! : "RandomQuotes",
+                BrandColor = !string.IsNullOrWhiteSpace(builder.Configuration["BRAND_COLOR"]) ? builder.Configuration["BRAND_COLOR"]! : "#0d6efd",
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
