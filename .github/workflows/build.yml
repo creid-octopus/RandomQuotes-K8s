@@ -35,10 +35,10 @@ on:
 
 env:
   DOCKERHUB_REPO: 'octopuscory/randomquotes-k8s'
-  OCTOPUS_SERVER_URL: 'https://creid.octopus.app'
-  OCTOPUS_SPACE: 'Default'
-  OCTOPUS_PROJECT: 'RandomQuotes - Kubernetes'
-  OCTOPUS_CHANNEL: 'PR Deployments'
+  OCTOPUS_SERVER_URL: 'https://demo.octopus.app'
+  OCTOPUS_SPACE: 'LDX3'
+  OCTOPUS_PROJECT: 'RandomQuotes - Kustomize'
+  OCTOPUS_CHANNEL: 'Multi-tenant Projects'
 
 jobs:
     build-and-push-application:
