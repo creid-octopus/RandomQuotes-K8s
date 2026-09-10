@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: randomquotes-deployment  
+  name: randomquotes-deployment
 spec:
   replicas: 1
   selector:
-    matchLabels: 
+    matchLabels:
       component: randomquotes-web
   template:
     metadata:
@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: randomquotes-web
-          image: octopussamples/randomquotes-k8s:0.1.32
+          image: #{Project.DynamicImageTag}
           resources:
             requests:
               memory: "64Mi"
@@ -24,41 +24,23 @@ spec:
               cpu: "500m"
           imagePullPolicy: "Always"
           ports:
-           - containerPort: 5000
-             name: http-port
+            - containerPort: 8080
+              name: http-port
           env:
-           - name: RANDOM_SECRET_PHRASE
-             valueFrom:
-               secretKeyRef:
-                 name: random-quotes-secrets
-                 key: homepageDisplay          
+            - name: RANDOM_SECRET_PHRASE
+              valueFrom:
+                secretKeyRef:
+                  name: random-quotes-secrets
+                  key: homepageDisplay
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: randomquotes-app-cluster-ip-service  
+  name: randomquotes-app-cluster-ip-service
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     component: randomquotes-web
   ports:
     - port: 6801
       targetPort: 8080
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: randomquotes-ingress-nginx  
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: randomquotes.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: randomquotes-app-cluster-ip-service
-                port:
-                  number: 6801
