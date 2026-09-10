@@ -4,8 +4,9 @@ on:
     # Trigger on pushes to main, but only when source or workflow files change.
     # This avoids unnecessary builds for docs/k8s manifest changes.
     push:
-      branches: 
+      branches:
         - main
+        - 'feature/**'
       paths:
           - 'src/**'
           - '.github/**'
@@ -34,6 +35,10 @@ on:
 
 env:
   DOCKERHUB_REPO: 'octopuscory/randomquotes-k8s'
+  OCTOPUS_SERVER_URL: 'https://demo.octopus.app'
+  OCTOPUS_SPACE: 'LDX3'
+  OCTOPUS_PROJECT: 'Random Quotes - Kustomize'
+  OCTOPUS_CHANNEL: 'PR Deployments'
 
 jobs:
     build-and-push-application:
@@ -61,6 +66,20 @@ jobs:
               uses: gittools/actions/gitversion/execute@v4.4.2
               with:
                   configFilePath: GitVersion.yml
+            # feature/* branches get their own tag scheme, independent of GitVersion's
+            # semVer: a stable slug (no SHA) identifies the branch/ephemeral environment
+            # consistently across pushes, and a separate SHA-suffixed image tag forces
+            # Kubernetes to actually notice the image changed and roll the deployment on
+            # every push. GitVersion's semVer is still used as the Octopus release number,
+            # unrelated to the image tag for feature branches.
+            - id: branch_meta
+              name: Compute branch slug and image tag
+              if: startsWith(github.ref_name, 'feature/')
+              run: |
+                SLUG=$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9]+#-#g; s#^-+|-+$##g' | cut -c1-30)
+                SHORT_SHA="${GITHUB_SHA:0:7}"
+                echo "branch_slug=pr-${SLUG}" >> "$GITHUB_OUTPUT"
+                echo "image_tag=pr-${SLUG}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
             # Authenticate to Docker Hub before build so the push step has credentials.
             # DOCKERHUB_PAT_USERNAME and DOCKERHUB_PAT are stored as repo secrets.
             - name: Login to Docker Hub
@@ -68,6 +87,16 @@ jobs:
               with:
                   username: ${{ secrets.DOCKERHUB_PAT_USERNAME }}
                   password: ${{ secrets.DOCKERHUB_PAT }}
+            # feature/* branches get only their own SHA-suffixed tag, no "latest" -
+            # latest should always mean "most recent main build", never a feature branch.
+            - id: docker_tags
+              name: Compute Docker tags
+              run: |
+                if [ "${{ startsWith(github.ref_name, 'feature/') }}" = "true" ]; then
+                  printf 'tags<<EOF\n%s:%s\nEOF\n' "${{ env.DOCKERHUB_REPO }}" "${{ steps.branch_meta.outputs.image_tag }}" >> "$GITHUB_OUTPUT"
+                else
+                  printf 'tags<<EOF\n%s:%s\n%s:latest\nEOF\n' "${{ env.DOCKERHUB_REPO }}" "${{ inputs.custom_tag || steps.determine_version.outputs.semVer }}" "${{ env.DOCKERHUB_REPO }}" >> "$GITHUB_OUTPUT"
+                fi
             - name: Build and push website container
               uses: docker/build-push-action@v6
               with:
@@ -77,8 +106,23 @@ jobs:
                 file: src/RandomQuotes.Web/Dockerfile
                 push: ${{ github.event_name == 'push' || inputs.push == true }}
                 platforms: linux/amd64
-                # Tag with both the version from GitVersion and "latest" for easy reference. 
-                # Allow overriding the version tag via workflow_dispatch input for flexibility.
-                tags: |
-                  ${{ env.DOCKERHUB_REPO }}:${{ inputs.custom_tag || steps.determine_version.outputs.semVer }}
-                  ${{ env.DOCKERHUB_REPO }}:latest
+                tags: ${{ steps.docker_tags.outputs.tags }}
+            # Release creation lives here, not in an Octopus feed trigger - a trigger
+            # only sees "a new package version appeared" with no build context, so it
+            # can't stamp a custom field. BranchSlug is what the ephemeral environment
+            # name template and the parent-scoped namespace variable both key off, no
+            # SHA here on purpose, it needs to stay stable across pushes to the same
+            # branch so Octopus redeploys into the *same* environment each time.
+            - name: Create Octopus release for PR Deployments
+              if: startsWith(github.ref_name, 'feature/') && github.event_name == 'push'
+              uses: OctopusDeploy/create-release-action@v3
+              with:
+                server: ${{ env.OCTOPUS_SERVER_URL }}
+                api_key: ${{ secrets.OCTOPUS_API_KEY }}
+                space: ${{ env.OCTOPUS_SPACE }}
+                project: ${{ env.OCTOPUS_PROJECT }}
+                channel: ${{ env.OCTOPUS_CHANNEL }}
+                release_number: ${{ steps.determine_version.outputs.semVer }}
+                package_version: ${{ steps.branch_meta.outputs.image_tag }}
+                custom_fields: |
+                  BranchSlug:${{ steps.branch_meta.outputs.branch_slug }}
