@@ -43,6 +43,12 @@ env:
 jobs:
     build-and-push-application:
         runs-on: ubuntu-latest
+        # feature/** is already in the push trigger, so a PR opened from a branch in
+        # this same repo fires push AND pull_request for the same commit, a duplicate
+        # build. pull_request exists for fork PRs, which never fire push at all since
+        # forks can't push here. Skip this run when it's a same-repo pull_request,
+        # push already covers it.
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
         steps:
             # Full history is required for GitVersion to correctly calculate
             # the semantic version by walking the commit graph.
