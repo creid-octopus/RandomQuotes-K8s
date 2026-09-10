@@ -38,7 +38,7 @@ env:
   OCTOPUS_SERVER_URL: 'https://demo.octopus.app'
   OCTOPUS_SPACE: 'LDX3'
   OCTOPUS_PROJECT: 'Random Quotes - Kustomize'
-  OCTOPUS_CHANNEL: 'Multi-tenant Projects'
+  OCTOPUS_CHANNEL: 'PR Deployments'
 
 jobs:
     build-and-push-application:
