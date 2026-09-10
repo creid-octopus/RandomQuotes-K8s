@@ -12,21 +12,15 @@ resources:
 
 # Base ships plain, working defaults (BRAND_NAME, BRAND_COLOR, homepageDisplay) so
 # it stays correct for the plain kubectl and dev/test/prod Kustomize paths, which
-# never run Octopus's substitution step. These patches are what make the Octopus
-# path tenant-aware: they replace those same fields with tokens that resolve to a
-# tenant's override, or fall back to the value template's default when a tenant
-# hasn't set one.
+# never run Octopus's substitution step.
+#
+# BRAND_NAME/BRAND_COLOR are deliberately NOT patched here. Custom branding is a
+# tag-gated feature (Features/Branding), applied by a separate step later in the
+# deployment process that only runs for tagged tenants. Every tenant gets base's
+# plain default from this step; only a tagged tenant's later step overwrites it.
+# Patching the tenant's value here too would substitute it for every tenant
+# regardless of tag, defeating the gate.
 patches:
-- target:
-    kind: ConfigMap
-    name: randomquotes-branding
-  patch: |-
-    - op: replace
-      path: /data/BRAND_NAME
-      value: "#{Tenant.Branding.BrandName}"
-    - op: replace
-      path: /data/BRAND_COLOR
-      value: "#{Tenant.Branding.BrandColor}"
 - target:
     kind: Secret
     name: random-quotes-secrets
